@@ -7,7 +7,7 @@ import os
 import datetime
 import six
 from .requests import Requests, BearerAuth, HttpTooManyRequests
-from .restobject import Linker
+from .restobject import Linker, prepare_notification_data
 
 
 class RateLimitWarning(Warning):
@@ -155,3 +155,12 @@ class HypChat(object):
 
     def get_emoticon(self, id_or_shortcut, **kwargs):
         return self.fromurl('{0}/v2/emoticon/{1}'.format(self.endpoint, id_or_shortcut), **kwargs)
+
+    def send_notification(self, id_or_name, message, notify=False, format=None, **kwargs):
+        """
+        Send a message to a room.
+        This version is for notification-only add-ons and tokens generated for that purpose.
+        """
+        data = prepare_notification_data(message, notify, format, **kwargs)
+        url = '{0}/v2/room/{1}'.format(self.endpoint, id_or_name)
+        self._requests.post(url + '/notification', data=data)

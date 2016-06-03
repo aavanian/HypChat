@@ -125,6 +125,23 @@ class RestObject(dict):
 _at_mention = re.compile('@[\w]+(?: |$)')
 
 
+def prepare_notification_data(message, notify=False, format=None, **kwargs):
+    """Process arguments to build the request body
+    Cards not supported. see https://www.hipchat.com/docs/apiv2/method/send_room_notification for additional properties
+    Note that from needs to be passed as _from to avoid python keyword conflict
+    """
+    properties = {'_from': 'from', 'attach_to': 'attach_to', 'color': 'color'}
+    if not format:
+        if len(_at_mention.findall(message)) > 0:
+            format = 'text'
+        else:
+            format = 'html'
+    data = {'message': message, 'notify': notify, 'message_format': format}
+    for prop, value in kwargs.items():
+        data[properties[prop]] = value if prop in properties.keys() else None
+    return data
+
+
 class Room(RestObject):
     def __init__(self, *p, **kw):
         super(Room, self).__init__(*p, **kw)
@@ -147,18 +164,11 @@ class Room(RestObject):
         data = {'message': message}
         self._requests.post(self.url + '/message', data=data)
 
-    def notification(self, message, color=None, notify=False, format=None):
+    def notification(self, message, notify=False, format=None, **kwargs):
         """
         Send a message to a room.
         """
-        if not format:
-            if len(_at_mention.findall(message)) > 0:
-                format = 'text'
-            else:
-                format = 'html'
-        data = {'message': message, 'notify': notify, 'message_format': format}
-        if color:
-            data['color'] = color
+        data = prepare_notification_data(message, notify, format, **kwargs)
         self._requests.post(self.url + '/notification', data=data)
 
     def topic(self, text):
